@@ -1,0 +1,12 @@
+{
+  "name": "erpnext-accelerator",
+  "owner": { "name": "Aexons" },
+  "plugins": [
+    {
+      "name": "erpnext-accelerator",
+      "source": "./",
+      "description": "Work with ERPNext in plain language: stock, orders, receivables, reports and safe draft documents.",
+      "version": "0.1.0"
+    }
+  ]
+}

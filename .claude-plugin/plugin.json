@@ -1,0 +1,8 @@
+{
+  "name": "erpnext-accelerator",
+  "version": "0.1.0",
+  "description": "Work with ERPNext in plain language: stock, orders, receivables, reports and safe draft documents.",
+  "author": { "name": "Aexons" },
+  "license": "MIT",
+  "keywords": ["erpnext", "frappe", "erp", "mcp", "inventory", "accounts-receivable"]
+}
