@@ -1,8 +1,21 @@
 {
   "name": "erpnext-accelerator",
-  "version": "0.1.0",
-  "description": "Work with ERPNext in plain language: stock, orders, receivables, reports and safe draft documents.",
-  "author": { "name": "Aexons" },
+  "version": "0.2.0",
+  "description": "Work with ERPNext in plain language: stock, sales, purchasing, receivables, India GST, daily briefing and drafts from documents.",
+  "author": {
+    "name": "Aexons"
+  },
   "license": "MIT",
-  "keywords": ["erpnext", "frappe", "erp", "mcp", "inventory", "accounts-receivable"]
+  "keywords": [
+    "accounts-receivable",
+    "briefing",
+    "erp",
+    "erpnext",
+    "frappe",
+    "gst",
+    "india",
+    "inventory",
+    "mcp",
+    "procurement"
+  ]
 }

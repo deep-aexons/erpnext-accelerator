@@ -51,3 +51,18 @@ Call `ping` and `get_stock_levels` from the Inspector UI.
 | 9 | stop the bench, ask anything | "Cannot reach ERPNext…" and a hint to run /erp-doctor |
 
 6. Check `~/.config/erpnext-accelerator/audit.log` shows the write attempts from 4–8.
+
+### Phase 2 checks (v0.2.0)
+
+| # | Prompt | Expected |
+|---|---|---|
+| 10 | match this month's purchase orders with receipts and bills | `three_way_match` table with flags |
+| 11 | what do we owe suppliers? | Accounts Payable based list |
+| 12 | *(attach a supplier invoice PDF)* make a draft purchase invoice | party + item mapping table, asks to confirm, draft PI with bill_no/bill_date |
+| 13 | *(attach an order photo)* make a draft sales order | same, Sales Order |
+| 14 | `/erp-briefing` | headline + sections; failing section shown as unavailable |
+| 15 | terminal: `uv run --directory server erpnext-mcp briefing` | Markdown briefing printed |
+| 16 | check last month's purchase invoices for GST mistakes | grouped issues with fixes (set a bad HSN on one Item first) |
+| 17 | reconcile this GSTR-2B: `<path to portal JSON>` | summary with ITC at risk |
+| 18 | *(India Compliance site)* which invoices still need an e-invoice? | `gst_status` list |
+| 19 | *(India Compliance + GSP sandbox, GST actions on)* generate the e-invoice for SINV-… | asks to confirm, returns IRN |

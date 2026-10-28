@@ -105,7 +105,7 @@ async def test_no_delete_tool():
 
     names = [t.name for t in await mcp.list_tools()]
     assert not any("delete" in n for n in names)
-    assert len(names) == 14
+    assert len(names) == 25
 
 
 # ---- final review fixes ------------------------------------------------------

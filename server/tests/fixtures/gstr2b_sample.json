@@ -1,0 +1,134 @@
+{
+ "chksum": "x",
+ "data": {
+  "gstin": "27AAACZ9999Z1ZC",
+  "rtnprd": "092026",
+  "version": "4.0",
+  "gendt": "14-10-2026",
+  "docdata": {
+   "b2b": [
+    {
+     "ctin": "27AAACA1111A1ZS",
+     "trdnm": "Alpha Traders",
+     "inv": [
+      {
+       "inum": "INV/001",
+       "typ": "R",
+       "dt": "05-09-2026",
+       "val": 11800,
+       "txval": 10000,
+       "igst": 0,
+       "cgst": 900,
+       "sgst": 900,
+       "cess": 0,
+       "pos": "27",
+       "rev": "N",
+       "itcavl": "Y"
+      },
+      {
+       "inum": "INV-002",
+       "typ": "R",
+       "dt": "07-09-2026",
+       "val": 5900,
+       "txval": 5000,
+       "igst": 0,
+       "cgst": 450,
+       "sgst": 450,
+       "cess": 0,
+       "pos": "27",
+       "rev": "N",
+       "itcavl": "Y"
+      },
+      {
+       "inum": "A-77",
+       "typ": "R",
+       "dt": "09-09-2026",
+       "val": 2360,
+       "pos": "27",
+       "rev": "Y",
+       "itcavl": "Y",
+       "items": [
+        {
+         "num": 1,
+         "rt": 18,
+         "txval": 1000,
+         "igst": 0,
+         "cgst": 90,
+         "sgst": 90,
+         "cess": 0
+        },
+        {
+         "num": 2,
+         "rt": 18,
+         "txval": 1000,
+         "igst": 0,
+         "cgst": 90,
+         "sgst": 90,
+         "cess": 0
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "ctin": "29AAACB2222B1ZF",
+     "trdnm": "Beta Supplies",
+     "inv": [
+      {
+       "inum": "B100",
+       "typ": "R",
+       "dt": "12-09-2026",
+       "val": 23600,
+       "txval": 20000,
+       "igst": 3600,
+       "cgst": 0,
+       "sgst": 0,
+       "cess": 0,
+       "pos": "27",
+       "rev": "N",
+       "itcavl": "Y"
+      }
+     ]
+    }
+   ],
+   "cdnr": [
+    {
+     "ctin": "27AAACA1111A1ZS",
+     "trdnm": "Alpha Traders",
+     "nt": [
+      {
+       "ntnum": "CN-5",
+       "typ": "C",
+       "suptyp": "R",
+       "dt": "20-09-2026",
+       "val": 1180,
+       "txval": 1000,
+       "igst": 0,
+       "cgst": 90,
+       "sgst": 90,
+       "cess": 0,
+       "pos": "27",
+       "rev": "N",
+       "itcavl": "Y"
+      }
+     ]
+    }
+   ],
+   "b2ba": [
+    {
+     "ctin": "29AAACB2222B1ZF",
+     "trdnm": "Beta Supplies",
+     "inv": [
+      {
+       "oinum": "B099",
+       "inum": "B099A",
+       "dt": "01-08-2026",
+       "txval": 1,
+       "igst": 0.18
+      }
+     ]
+    }
+   ]
+  }
+ }
+}

@@ -112,7 +112,7 @@ def test_cli_setup_saves(tools_mod, monkeypatch, home):
     from erpnext_mcp import __main__ as cli
 
     respx.get(f"{BASE}/api/method/frappe.auth.get_logged_user").respond(json={"message": "api@x"})
-    answers = iter(["dev", BASE, "", "key1", "n"])
+    answers = iter(["dev", BASE, "", "key1", "n", "n"])
     monkeypatch.setattr("builtins.input", lambda prompt="": next(answers))
     monkeypatch.setattr(cli, "getpass", lambda prompt="": "sec1")
     assert cli.main(["setup"]) == 0
@@ -156,7 +156,7 @@ def test_cli_setup_can_enable_submit(tools_mod, monkeypatch):
     from erpnext_mcp import __main__ as cli
 
     respx.get(f"{BASE}/api/method/frappe.auth.get_logged_user").respond(json={"message": "api@x"})
-    answers = iter(["dev", BASE, "", "key1", "y"])
+    answers = iter(["dev", BASE, "", "key1", "y", "n"])
     monkeypatch.setattr("builtins.input", lambda prompt="": next(answers))
     monkeypatch.setattr(cli, "getpass", lambda prompt="": "sec1")
     assert cli.main(["setup"]) == 0

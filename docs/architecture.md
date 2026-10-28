@@ -15,7 +15,10 @@ agentic-AI R&D; "Approach 1" (a customer-facing agent inside ERPNext) is separat
                             ▼  MCP over stdio
                  ┌──────────────────────────────┐
                  │ erpnext-mcp (Python, via uv) │
-                 │  tools.py   14 MCP tools     │
+                 │  tools.py   core tools       │
+                 │  p2p.py, documents.py,       │
+                 │  briefing.py, gst_tools.py   │
+                 │  gst.py     GST rules (pure) │
                  │  guards.py  safety + audit   │
                  │  client.py  HTTP + retries   │
                  │  config.py  profiles         │
@@ -33,7 +36,12 @@ agentic-AI R&D; "Approach 1" (a customer-facing agent inside ERPNext) is separat
 | `errors.py` | `ERPNextError` family; turn Frappe error bodies into one clean line | — |
 | `client.py` | `ERPNextClient`: auth + Host headers, timeouts, retry policy, JSON decoding | config, errors |
 | `guards.py` | Write blocklist, draft-only rules, submit gate, JSONL audit log | config, errors |
-| `tools.py` | MCP tool definitions; shape results for the model | all of the above |
+| `tools.py` | Core MCP tools (connection, read, drafts, gated), shared helpers, lazy re-export of feature tools | all of the above |
+| `p2p.py` | `three_way_match`; pure `match_flags` | tools |
+| `documents.py` | `find_party`, `match_items`; pure `score` | tools |
+| `briefing.py` | `daily_briefing`; `collect`, `render_markdown` (also used by the CLI) | tools |
+| `gst.py` | Pure GST rules: GSTIN checksum, tax-row classification, invoice checks, GSTR-2B parsing, reconciliation | — |
+| `gst_tools.py` | 7 GST tools; detects India Compliance and picks fields | gst, guards, tools |
 | `__main__.py` | `erpnext-mcp` (server), `setup`, `doctor` CLI | tools |
 
 `tools.py` never uses `httpx` directly, so retries and error mapping are in one place and tested once.
@@ -46,6 +54,15 @@ agentic-AI R&D; "Approach 1" (a customer-facing agent inside ERPNext) is separat
 4. ERPNext applies the API user's permissions and returns rows; the tool caps and returns them.
 5. Claude formats a table (on hand, reserved, available).
 
+## Phase 2 notes (v0.2.0)
+
+- Feature modules register on the same FastMCP instance through `tools._tool`; `tools.py` imports them last and
+  re-exports their tools lazily, so `tools` stays the single place that lists every tool.
+- GST logic is pure and table-tested; tools only fetch data and call it. The same checks run on core ERPNext
+  (`tax_id`, `customs_tariff_number`) and on India Compliance fields.
+- Documents are read by Claude itself (vision); the server only matches parties/items and creates drafts.
+- The briefing is one tool so a scheduled task or the CLI gets everything in one call; each section fails alone.
+
 ## Key decisions
 
 | Decision | Why | Trade-off |
@@ -57,6 +74,9 @@ agentic-AI R&D; "Approach 1" (a customer-facing agent inside ERPNext) is separat
 | Generic tools + one specialised (`get_stock_levels`) | Small surface, covers all DocTypes; stock is the most common question | Some workflows need several calls |
 | `mcp>=1.10,<2` | v1 FastMCP API is stable; v2 renamed it | Future migration when moving to 2.x |
 | No retries of writes on 5xx | Avoid duplicate documents | A transient 5xx on create surfaces as an error |
+| GST checks work without India Compliance | Many sites run core ERPNext only | Users must fill Tax ID / Customs Tariff Number |
+| Only *generate* e-invoice/e-way, gated | Reported to the government; cancelling has legal timing rules | Cancel in ERPNext |
+| No OCR in the server | Claude reads PDFs/images well; less to install | Large scanned batches go one document at a time |
 
 ## Future: team-wide connector
 

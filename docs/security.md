@@ -9,7 +9,11 @@ mistakes stay small and reversible.
 2. **Drafts only by default.** `create_draft` forces `docstatus = 0`. `update_draft` refuses submitted (1) or
    cancelled (2) documents and refuses to change `docstatus`, `name`, `doctype`, `owner`, `creation`,
    `modified` or `amended_from`.
-3. **Double-gated submit/cancel.** `submit_doc` / `cancel_doc` need both:
+3. **Double-gated submit/cancel and GST actions.** e-Invoice / e-Way Bill generation (`gst_generate_e_invoice`,
+   `gst_generate_e_waybill`) follows the same pattern with its own switch, `allow_gst_actions`
+   (`ERPNEXT_ALLOW_GST_ACTIONS=1` or `erpnext-mcp setup`), because it reports to the government portal. There is no
+   cancel tool for either.
+   Submit/cancel: `submit_doc` / `cancel_doc` need both:
    - `allow_submit` on the profile — off by default, and only the user can turn it on (`erpnext-mcp setup` in a
      terminal, `ERPNEXT_ALLOW_SUBMIT=1`, or editing the config file). The `connect` tool cannot change it; and
    - `confirm=true` on the call, which Claude only sends after showing a summary and getting an explicit yes.
@@ -20,7 +24,8 @@ mistakes stay small and reversible.
    - code execution: DocType, Module Def, Server Script, Client Script, Report, Print Format, Web Page, Web Form,
      Scheduled Job Type;
    - side effects and system config: System Settings, Website Settings, Webhook, Notification, Auto Email Report,
-     Email Queue, Data Import.
+     Email Queue, Data Import;
+   - India Compliance credentials: GST Settings, GST Credential.
 5. **No code in customizations.** Custom Field and Property Setter are allowed (so the customization skill
    works), but the plugin refuses HTML fields and any value starting with `eval:` or containing `<script`.
    Give the API user System Manager only on dev/test sites.
@@ -48,6 +53,11 @@ mistakes stay small and reversible.
 If `ERPNEXT_URL`, `ERPNEXT_API_KEY` and `ERPNEXT_API_SECRET` are all set, they form a separate `env` profile;
 no setting (including `allow_submit`) is inherited from the config file, so env credentials for one site never
 pick up another site's permissions.
+
+## Local files
+
+`gst_reconcile_2b(file_path=...)` reads one JSON file from the computer running the MCP server — the file the user
+names. Nothing else on disk is read, and nothing is uploaded except what the tools send to your ERPNext.
 
 ## Known limits
 

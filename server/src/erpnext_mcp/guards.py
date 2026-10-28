@@ -45,6 +45,9 @@ WRITE_BLOCKLIST: frozenset[str] = frozenset({
     "Role Permission for Page and Report",
     "Social Login Key",
     "LDAP Settings",
+    # India Compliance: GSP credentials and GST account mapping
+    "GST Settings",
+    "GST Credential",
 })
 _BLOCKED = frozenset(d.casefold() for d in WRITE_BLOCKLIST)
 
@@ -110,6 +113,20 @@ def check_submit_allowed(profile: Profile, confirm: bool) -> None:
         raise GuardError(
             "Submit/cancel needs confirm=true. First show a short summary of the document and ask the user "
             "to confirm, then call again with confirm=true."
+        )
+
+
+def check_gst_action_allowed(profile: Profile, confirm: bool) -> None:
+    if not profile.allow_gst_actions:
+        raise GuardError(
+            f"e-invoice/e-way generation is turned off for profile '{profile.name}'. Tell the user they can generate "
+            "it in ERPNext, or enable it themselves in a terminal with `erpnext-mcp setup` "
+            "(or ERPNEXT_ALLOW_GST_ACTIONS=1). You cannot enable it."
+        )
+    if confirm is not True:
+        raise GuardError(
+            "e-invoice/e-way generation needs confirm=true. It is reported to the government portal and cannot be "
+            "undone from here. Show the user the document summary, ask the user to confirm, then call again with confirm=true."
         )
 
 

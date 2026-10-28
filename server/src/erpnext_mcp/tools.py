@@ -87,6 +87,32 @@ def _clamp(limit: int, default: int) -> int:
     return max(1, min(limit, MAX_LIMIT))
 
 
+def _chunks(seq, size: int = 100):
+    """Split long `in` lists so GET URLs stay short."""
+    seq = list(seq)
+    for i in range(0, len(seq), size):
+        yield seq[i:i + size]
+
+
+def _fetch_all(client: ERPNextClient, doctype: str, filters, fields, *, parent: str | None = None,
+               order_by: str | None = None, max_rows: int = 5000, page: int = 500) -> tuple[list[dict], bool]:
+    """Page through a list until done or `max_rows` exceeded. Returns (rows, truncated)."""
+    rows: list[dict] = []
+    while True:
+        want = min(page, max_rows + 1 - len(rows))
+        params: dict[str, Any] = {"filters": json.dumps(filters), "fields": json.dumps(fields),
+                                  "limit_start": len(rows), "limit_page_length": want}
+        if parent:
+            params["parent"] = parent
+        if order_by:
+            params["order_by"] = order_by
+        batch = client.get(client.resource_path(doctype), params=params).get("data", [])
+        rows.extend(batch)
+        if len(batch) < want or len(rows) > max_rows:
+            break
+    return rows[:max_rows], len(rows) > max_rows
+
+
 def _shape(rows: list, limit: int) -> dict:
     return {"rows": rows[:limit], "count": min(len(rows), limit), "truncated": len(rows) > limit}
 
@@ -354,16 +380,21 @@ def save_connection(
     site: str | None = None,
     make_default: bool = True,
     allow_submit: bool | None = None,
+    allow_gst_actions: bool | None = None,
 ) -> dict:
     """Verify credentials with a login check, then save the profile.
 
     allow_submit=None keeps the profile's current setting (False for a new profile).
     Only the terminal setup and config/env can turn submit on; the MCP tool cannot.
     """
+    existing = load_profile(profile) if profile in list_profiles() else None
     if allow_submit is None:
-        allow_submit = profile in list_profiles() and load_profile(profile).allow_submit
+        allow_submit = bool(existing and existing.allow_submit)
+    if allow_gst_actions is None:
+        allow_gst_actions = bool(existing and existing.allow_gst_actions)
     prof = Profile(name=profile, url=normalize_url(url), api_key=api_key, api_secret=api_secret,
-                   site=site or None, allow_submit=bool(allow_submit), max_retries=1)
+                   site=site or None, allow_submit=bool(allow_submit), max_retries=1,
+                   allow_gst_actions=bool(allow_gst_actions))
     try:
         with _client_factory(prof) as client:
             user = client.call_method("frappe.auth.get_logged_user")
@@ -440,3 +471,15 @@ def diagnose(profile: str | None = None) -> dict:
     checks.append({"name": "submit", "ok": True,
                    "detail": "enabled (needs confirm=true)" if prof.allow_submit else "disabled (drafts only)"})
     return {"ok": all(c["ok"] for c in checks), "checks": checks}
+
+
+# Feature modules register their tools on `mcp` when imported; re-export them so `tools` lists every tool.
+from . import briefing, documents, gst_tools, p2p
+
+
+def __getattr__(name: str):
+    # Lazy re-export (PEP 562): works whichever module is imported first.
+    for module in (p2p, documents, briefing, gst_tools):
+        if name in getattr(module, "__all__", ()):
+            return getattr(module, name)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

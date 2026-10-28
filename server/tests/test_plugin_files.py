@@ -28,12 +28,24 @@ async def _tool_names() -> set[str]:
     return {t.name for t in await mcp.list_tools()}
 
 
+def entry_version(market):
+    return next(p for p in market["plugins"] if p["name"] == "erpnext-accelerator")["version"]
+
+
+def test_package_version():
+    from erpnext_mcp import __version__
+
+    assert __version__ == "0.2.0"
+    assert 'version = "0.2.0"' in (ROOT / "server/pyproject.toml").read_text()
+
+
 def test_manifests_parse():
     plugin = json.loads((ROOT / ".claude-plugin/plugin.json").read_text())
     market = json.loads((ROOT / ".claude-plugin/marketplace.json").read_text())
     mcp_cfg = json.loads((ROOT / ".mcp.json").read_text())
     assert plugin["name"] == "erpnext-accelerator"
-    assert plugin["version"] == "0.1.0"
+    assert plugin["version"] == "0.2.0"
+    assert entry_version(market) == "0.2.0"
     entry = next(p for p in market["plugins"] if p["name"] == "erpnext-accelerator")
     assert entry["source"] == "./"
     server = mcp_cfg["mcpServers"]["erpnext"]
@@ -47,8 +59,9 @@ COMMANDS = sorted((ROOT / "commands").glob("*.md"))
 
 def test_expected_skills_and_commands():
     assert {p.parent.name for p in SKILLS} == {
-        "erpnext-stock", "erpnext-order-to-cash", "erpnext-ar-collections", "erpnext-customization"}
-    assert {p.stem for p in COMMANDS} == {"erp-connect", "erp-doctor"}
+        "erpnext-stock", "erpnext-order-to-cash", "erpnext-ar-collections", "erpnext-customization",
+        "erpnext-procure-to-pay", "erpnext-document-to-draft", "erpnext-daily-briefing", "erpnext-gst"}
+    assert {p.stem for p in COMMANDS} == {"erp-connect", "erp-doctor", "erp-briefing"}
 
 
 @pytest.mark.parametrize("path", SKILLS, ids=lambda p: p.parent.name)

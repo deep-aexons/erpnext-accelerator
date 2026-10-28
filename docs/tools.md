@@ -1,6 +1,6 @@
 # Tool reference
 
-The MCP server is named `erpnext`. In Claude the tools appear as `mcp__…erpnext__<tool>`.
+The MCP server is named `erpnext` and has 25 tools. In Claude the tools appear as `mcp__…erpnext__<tool>`.
 All tools read the active profile at call time (see [setup.md](setup.md)). Errors come back as one readable
 line, e.g. `ERPNext error 417 (ValidationError): Row 1: Qty required`.
 
@@ -102,6 +102,96 @@ Claude is instructed to summarise the document and get an explicit yes first. Au
 ### `cancel_doc`
 
 `cancel_doc(doctype, name, confirm=false)`. Same gate as `submit_doc`. Audited.
+
+## Procure to pay
+
+### `three_way_match`
+
+`three_way_match(purchase_order=None, supplier=None, from_date=None, to_date=None, tolerance_pct=0.0, only_issues=True, limit=50)`
+→ `{orders: [{name, supplier, transaction_date, status, per_received, per_billed, lines: [{item_code, ordered_qty, received_qty, rate, amount, billed_amt, invoices, flags}], has_issues}], summary: {orders_checked, orders_with_issues, flag_counts}, truncated}`.
+
+Flags: `not_received`, `partially_received`, `over_received`, `received_not_billed`, `billed_more_than_received`,
+`over_billed`, `rate_mismatch`. `tolerance_pct` applies to qty, amount and rate (amount tolerance at least ₹1).
+Max 200 orders per call.
+
+## Documents to drafts
+
+### `find_party`
+
+`find_party(party_type, query, limit=5)` — `party_type` is `Customer` or `Supplier`. A GSTIN-shaped query matches
+`tax_id` exactly (`match_by: "gstin"`); otherwise name search ranked by similarity (Pvt/Ltd/Co expanded).
+→ `[{name, display_name, tax_id, score, match_by}]`.
+
+### `match_items`
+
+`match_items(lines, supplier=None, limit_per_line=3)` — `lines`: strings or `{description, code?, supplier_part_no?, hsn?}`, max 100.
+Order: exact item code → barcode (8–14 digits) → supplier part number (needs `supplier`) → name similarity.
+→ `{lines: [{input, candidates, best, confident}], unmatched}`; `confident` = exact/barcode/part-no match or score ≥ 0.85.
+
+## Daily briefing
+
+### `daily_briefing`
+
+`daily_briefing(company=None, date=None)` → `{company, date, sections, markdown}`. Sections: `sales` (invoices and
+orders on the date), `cash` (Account Balance report for leaf Bank/Cash accounts of the company, `totals` per
+currency, `total` only when single-currency), `receivables_overdue`, `payables_overdue`
+(count, total, top 5 parties), `low_stock` (on hand below Item reorder level), `approvals` (open Workflow Actions
+per DocType, draft counts). A section that fails returns `{error}`; the rest still work. Lists are paged up to
+5,000 rows; capped totals are marked `truncated` and shown as *partial* in the markdown. Also available as
+`erpnext-mcp briefing` and `/erp-briefing`.
+
+## India GST
+
+Without India Compliance the GST tools use core fields: GSTIN = `tax_id`, HSN = Item `customs_tariff_number`.
+With it they use `gstin`, `company_gstin`, `supplier_gstin`, `billing_address_gstin`, `gst_hsn_code`,
+`place_of_supply` and `gst_tax_type`.
+
+### `gst_capabilities`
+
+`gst_capabilities()` → `{india_compliance, versions, hsn_field, gstin_field, e_invoice_e_waybill}`.
+
+### `gst_validate_gstin`
+
+`gst_validate_gstin(gstin)` → `{valid, gstin, state_code, pan, reason}`. Offline: format, state code (01–38, 97), check digit.
+
+### `gst_check_invoices`
+
+`gst_check_invoices(doctype, from_date, to_date, company=None, include_drafts=True, limit=100)` — `doctype` is
+`Sales Invoice` or `Purchase Invoice`; max 200 invoices per call.
+→ `{invoices_checked, issues: [{invoice, check, severity, message}], summary: {errors, warnings, invoices_with_errors, by_check}, truncated, data_source}`.
+Checks: `company_gstin_invalid`, `party_gstin_missing` (warning), `party_gstin_invalid`, `hsn_missing`, `hsn_format`,
+`no_gst_tax` (warning), `wrong_tax_type`, `cgst_sgst_unequal`, `rate_not_standard`, `bill_no_missing`,
+`bill_date_missing`. Standard slabs include 40% (GST 2.0). SEZ and Overseas parties (India Compliance `gst_category`)
+are treated as inter-state; purchases from a supplier without a known state skip the CGST/SGST-vs-IGST check.
+
+### `gst_reconcile_2b`
+
+`gst_reconcile_2b(source="file", file_path=None, from_date=None, to_date=None, company=None, amount_tolerance=1.0, limit=100)`.
+`source="file"` reads a GSTR-2B JSON from the GST portal (B2B invoices and CDNR notes; amendments are listed in
+`skipped`); dates default to the file's return month (`rtnprd`). `source="india_compliance"` reads `GST Inward Supply`
+(credit notes made negative). Book side: submitted Purchase Invoices **posted** in the period, plus out-of-period
+invoices whose bill matches a 2B row (late-filed bills). Book tax = CGST/SGST/IGST/Cess "Add" rows only (TDS, freight
+ignored). Refuses with a clear message above 5,000 rows instead of giving partial results. Match key: supplier GSTIN + bill number ignoring case, spaces,
+`/`, `-` and leading zeros.
+→ `{summary: {matched, mismatch, suggested, missing_in_books, missing_in_2b, itc_at_risk}, matched, mismatch, suggested, missing_in_books, missing_in_2b, truncated, period, skipped, notes}`.
+
+### `gst_status`
+
+`gst_status(doctype="Sales Invoice", from_date, to_date, company=None, limit=100)` — India Compliance only. Lists
+submitted documents whose e-invoice / e-way status is Pending, Failed or Auto-Retry.
+→ `{e_invoice_pending, e_waybill_pending, counts, truncated}`.
+
+### `gst_generate_e_invoice`
+
+`gst_generate_e_invoice(name, confirm=false)` — India Compliance only. Calls
+`india_compliance.gst_india.utils.e_invoice.generate_e_invoice`, then returns `{name, irn, einvoice_status}`.
+Runs only when the profile has `allow_gst_actions` **and** `confirm=true`. Audited.
+
+### `gst_generate_e_waybill`
+
+`gst_generate_e_waybill(doctype, name, values=None, confirm=false)` — India Compliance only. Calls
+`india_compliance.gst_india.utils.e_waybill.generate_e_waybill`; `values` carries transport details
+(`transporter`, `vehicle_no`, `distance`, `mode_of_transport`, …). Same gate as e-invoice. Audited.
 
 ## Retry behaviour
 

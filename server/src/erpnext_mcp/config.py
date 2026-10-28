@@ -29,6 +29,7 @@ class Profile:
     allow_submit: bool = False
     timeout: float = 30.0
     max_retries: int = 3
+    allow_gst_actions: bool = False
 
 
 def config_home() -> Path:
@@ -133,6 +134,8 @@ def load_profile(name: str | None = None) -> Profile:
             base[key] = env[var]
     if env.get("ERPNEXT_ALLOW_SUBMIT") is not None:
         base["allow_submit"] = env["ERPNEXT_ALLOW_SUBMIT"].strip().lower() in _TRUE
+    if env.get("ERPNEXT_ALLOW_GST_ACTIONS") is not None:
+        base["allow_gst_actions"] = env["ERPNEXT_ALLOW_GST_ACTIONS"].strip().lower() in _TRUE
     if env.get("ERPNEXT_TIMEOUT"):
         base["timeout"] = float(env["ERPNEXT_TIMEOUT"])
     if env.get("ERPNEXT_MAX_RETRIES"):
@@ -150,4 +153,5 @@ def load_profile(name: str | None = None) -> Profile:
         allow_submit=bool(base.get("allow_submit", False)),
         timeout=float(base.get("timeout", 30.0)),
         max_retries=int(base.get("max_retries", 3)),
+        allow_gst_actions=bool(base.get("allow_gst_actions", False)),
     )

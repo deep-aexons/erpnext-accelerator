@@ -54,8 +54,9 @@ Claude asks for:
 | Site name | `erpnext.localhost` (only needed when the bench hosts several sites; harmless otherwise) |
 | API key / secret | from step 1 |
 
-Submit/cancel starts **off** (drafts only). Only you can turn it on, with the terminal setup below
-(answer `y` to "Allow submit/cancel") or `ERPNEXT_ALLOW_SUBMIT=1`; Claude cannot.
+Submit/cancel and e-invoice/e-way generation start **off**. Only you can turn them on, with the terminal setup
+below (answer `y` to "Allow submit/cancel" or "Allow e-invoice/e-way generation") or with
+`ERPNEXT_ALLOW_SUBMIT=1` / `ERPNEXT_ALLOW_GST_ACTIONS=1`; Claude cannot.
 
 Claude checks the credentials **before** saving. The profile is stored in
 `~/.config/erpnext-accelerator/config.json` with file mode 0600.
@@ -84,6 +85,7 @@ the file. If `ERPNEXT_PROFILE` is set, Claude cannot switch profiles until you u
 | `ERPNEXT_API_KEY`, `ERPNEXT_API_SECRET` | Credentials |
 | `ERPNEXT_PROFILE` | Profile to use |
 | `ERPNEXT_ALLOW_SUBMIT` | `1`/`true` to allow submit/cancel |
+| `ERPNEXT_ALLOW_GST_ACTIONS` | `1`/`true` to allow e-invoice / e-way bill generation (India Compliance) |
 | `ERPNEXT_TIMEOUT` | Request timeout in seconds (default 30) |
 | `ERPNEXT_MAX_RETRIES` | Retries for transient errors (default 3) |
 | `ERPNEXT_ACCELERATOR_HOME` | Config directory (default `~/.config/erpnext-accelerator`) |
@@ -97,6 +99,11 @@ Just ask in plain language:
 - "which customers owe more than 50,000? draft reminder emails for the top 3"
 - "make a draft sales order for Acme: 10 × ITEM-001, delivery next Friday"
 - "what fields does Sales Order have? add a Delivery Slot select field"
+- "match last month's purchase orders with receipts and bills"
+- *(attach a PDF or WhatsApp photo)* "make a draft sales order from this"
+- "give me my daily briefing" or `/erp-briefing`
+- "check September sales invoices for GST mistakes"
+- "reconcile this GSTR-2B with our purchase invoices: ~/Downloads/2B_092026.json"
 
 If something fails, run:
 
@@ -104,7 +111,44 @@ If something fails, run:
 /erp-doctor
 ```
 
-## 5. Claude Desktop (tools only)
+## 5. India GST
+
+- **Without India Compliance** (core ERPNext): put the GSTIN in **Tax ID** on Company, Customer and Supplier, and the
+  HSN/SAC code in **Customs Tariff Number** on each Item. Use account names that contain CGST, SGST/UTGST, IGST or
+  Cess for GST tax accounts so the checks can classify tax rows.
+- **With India Compliance:** nothing extra; its GST fields are used automatically. e-Invoice / e-Way Bill need GSP
+  credentials configured in India Compliance's GST Settings (the plugin never reads or writes them), and the API user
+  needs permission to submit Sales Invoices.
+- **GSTR-2B file:** GST portal → Returns → GSTR-2B → *Download (JSON)*; give Claude the file path.
+
+## 6. Daily briefing on a schedule
+
+The briefing has to run on a machine that can reach your ERPNext.
+
+- **Claude scheduled task** (Claude Desktop / Cowork on the same computer as a local ERPNext, or any computer for a
+  public site): create a daily task with the prompt *"Give me my ERPNext daily briefing."* The computer must be awake
+  and the Claude app open at that time. Cloud-run tasks cannot reach `localhost`.
+- **Without Claude** (macOS launchd, every day at 08:31): save as
+  `~/Library/LaunchAgents/com.aexons.erp-briefing.plist`, then `launchctl load` it.
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>Label</key><string>com.aexons.erp-briefing</string>
+  <key>ProgramArguments</key><array>
+    <string>/opt/homebrew/bin/uv</string><string>run</string><string>--quiet</string><string>--directory</string>
+    <string>/Users/deepchavhan/Aexons/Projects/erp/erpnext-accelerator/server</string>
+    <string>erpnext-mcp</string><string>briefing</string>
+  </array>
+  <key>StartCalendarInterval</key><dict><key>Hour</key><integer>8</integer><key>Minute</key><integer>31</integer></dict>
+  <key>StandardOutPath</key><string>/Users/deepchavhan/erp-briefing.md</string>
+</dict></plist>
+```
+
+  On Linux: `31 8 * * * uv run --quiet --directory <plugin>/server erpnext-mcp briefing > ~/erp-briefing.md`.
+
+## 7. Claude Desktop (tools only)
 
 Claude Desktop can use the MCP server (no skills/commands). Edit
 `~/Library/Application Support/Claude/claude_desktop_config.json`:
